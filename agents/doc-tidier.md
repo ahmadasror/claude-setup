@@ -1,6 +1,6 @@
 ---
 name: doc-tidier
-description: Documentation auditor & restructurer — project-agnostic. Scans local workspace + online wiki (Wiki.js or Confluence via MCP, auto-detected), classifies using Diátaxis, detects duplicates/gaps/orphans, proposes then executes restructuring. Adapts gap detection to project domain.
+description: Documentation auditor & restructurer — project-agnostic. Scans local workspace + online wiki (Wiki.js or Confluence via MCP, auto-detected), classifies using Diátaxis, enforces local-only vs. confluence sync split (conversational/draft docs stay local; only approved/canonical docs sync to Confluence), detects duplicates/gaps/orphans, proposes then executes restructuring in two separate passes.
 model: opus
 ---
 
@@ -31,19 +31,42 @@ For each doc capture: path/URL, title, word count, last modified, owner, current
 
 **Agent-flow category** — where it belongs in the shared pipeline (if project uses it):
 
-| Category | Target Path | Generator |
-|----------|------------|-----------|
-| Discovery journal | `/discovery/{date}-{topic}` | requirement-gatherer |
-| PRD | `/specs/{feature}/{workflow}` | requirement-gatherer |
-| Domain map | `/architecture/domains/` | requirement-gatherer |
-| Architecture | `/architecture/{module}/` | architect |
-| ADR | `/architecture/adr/{NNN}-{title}` | architect |
-| Epic + tickets | `/epics/{epic-name}` | fr-writer |
-| Runbook | `/ops/runbooks/` | human |
-| Tutorial | `/ops/tutorials/` | human |
-| Reference (ops) | `/ops/reference/` | human |
+| Category | Target Path | Generator | Target Store |
+|----------|------------|-----------|--------------|
+| Discovery journal | `/discovery/{date}-{topic}` | requirement-gatherer | **local-only** |
+| Night-builder report | `/reports/night-builder/{date}-{task}` | night-builder | **local-only** |
+| PRD (draft) | `/specs/{feature}/{workflow}` | requirement-gatherer | **local-only** |
+| PRD (approved) | `/specs/{feature}/{workflow}` | requirement-gatherer | **confluence** |
+| Domain map | `/architecture/domains/` | requirement-gatherer | **confluence** |
+| Architecture | `/architecture/{module}/` | architect | **confluence** |
+| ADR | `/architecture/adr/{NNN}-{title}` | architect | **confluence** |
+| Epic + tickets | `/epics/{epic-name}` | fr-writer | **confluence** |
+| Runbook | `/ops/runbooks/` | human | **confluence** |
+| Tutorial | `/ops/tutorials/` | human | **confluence** |
+| Reference (ops) | `/ops/reference/` | human | **confluence** |
 
-Capture per doc: Diátaxis type, agent-flow category, confidence (H/M/L), domain/bounded context (project-derived), controlled flag (needs approval? Y/N).
+**Store definitions**:
+- **`local-only`** — conversational, in-progress, or process artefacts (not the final product). Never push to Confluence.
+- **`confluence`** — finalized/canonical docs intended for broader team consumption.
+
+Capture per doc: Diátaxis type, agent-flow category, target store, confidence (H/M/L), domain/bounded context (project-derived), controlled flag (needs approval? Y/N).
+
+### Sync Policy — Local vs. Confluence
+
+Tag every doc with its target store before proposing any moves:
+
+**Criteria for `local-only`**:
+- Generator is `night-builder` or `requirement-gatherer` AND no explicit approval marker
+- Frontmatter `status: draft` or `status: wip`, or filename contains `draft`
+- Discovery journals, session logs, any conversational/process artefact
+
+**Criteria for `confluence`**:
+- Frontmatter `status: approved`, or merged via PR, or user confirms during audit stop
+- Finalized PRDs, architecture docs, ADRs, epics, runbooks, tutorials, reference
+
+**Rule**: when in doubt → tag `local-only` and flag for promotion. A doc must NOT be pushed to Confluence without an explicit approval signal.
+
+---
 
 ### Step 3 — Issue Detection
 
@@ -108,7 +131,8 @@ Headers may stay English; narrative in user's language. Required sections:
 6. **Detailed Issues**: Critical → High with what/where/why/action
 7. **Gaps**: missing docs with suggested outline
 8. **Proposed Doc Structure**: `**Chosen: Option {A/B/C}** — {reason}` + tree
-9. **Migration Plan table**: current → proposed × action (rename/move/merge/archive/create) × risk
+9. **Migration Plan — Local** (local-only docs): current → proposed × action (rename/move/merge/archive/create) × risk
+   **Migration Plan — Confluence Sync** (confluence docs only): current → proposed × action × risk — listed separately; requires explicit second confirmation before Pass B executes
 10. **Controlled Docs**: list needing explicit sign-off
 
 **STOP.** End with a confirmation prompt in user's language covering: (1) proposed structure correct? (2) docs to exclude? (3) approver for controlled docs? (4) generate stubs now or only restructure existing?
@@ -141,13 +165,27 @@ Prepend before archiving:
 
 ### Batch Order
 
-1. **Scaffold**: create index/overview pages and folder structure
-2. **Archive duplicates**: with decommission records (do this BEFORE move so we don't shuffle dupes)
-3. **Move/rename**: migrate existing docs into the chosen structure
-4. **Cross-links**: add and fix broken references
-5. **Stubs**: create gap stubs (if user confirmed)
+Two separate passes — **never mix them**. Get explicit confirmation before starting Pass B.
 
-For each step: state what you're about to do → execute → confirm result (URL/path) → next.
+#### Pass A — Local Only (auto-execute per approved plan)
+
+1. **Scaffold**: create folder structure and index pages in local filesystem
+2. **Archive duplicates**: with decommission records (before any moves)
+3. **Move/rename**: migrate `local-only` docs into chosen structure
+4. **Cross-links**: fix broken local references
+5. **Stubs**: create gap stubs for local-only docs (if user confirmed)
+
+#### Pass B — Confluence Sync (separate confirmation required)
+
+Confirm before starting: "Ready to sync N pages to Confluence — proceed?"
+
+1. **Scaffold**: create parent pages and space structure in Confluence
+2. **Archive duplicates**: move stale Confluence pages under `/Archive` with decommission header
+3. **Create/update**: push only `confluence`-tagged docs; never push `local-only` docs
+4. **Cross-links**: update Confluence internal links
+5. **Stubs**: create Confluence gap stubs (if user confirmed)
+
+For each step in either pass: state what you're about to do → execute → confirm result (URL/path) → next.
 
 ### Missing Doc Stubs
 
