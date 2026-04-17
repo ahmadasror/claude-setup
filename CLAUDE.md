@@ -4,18 +4,21 @@ This repo mirrors the agent definitions, hooks, and rules from `~/.claude/`.
 
 ## Sync Convention
 
-**Source of truth: `~/.claude/`** — never the repo.
+Sync direction depends on the assignment:
 
-To sync: copy FROM `~/.claude/{dir}/` TO this repo, then commit and push.
+- **`~/.claude/` → repo**: after editing agents/rules locally, push to repo to persist
+- **repo → `~/.claude/`**: after pulling updates from another machine or collaborator
 
 ```bash
+# ~/.claude → repo
 cp ~/.claude/agents/*.md agents/
-cp ~/.claude/rules/*.md rules/
-cp ~/.claude/hooks/*.* hooks/
-git add -p && git commit -m "chore: sync agents/rules/hooks from ~/.claude"
+git add -p && git commit -m "chore: sync agents from ~/.claude"
+
+# repo → ~/.claude
+cp agents/*.md ~/.claude/agents/
 ```
 
-Never copy FROM this repo TO `~/.claude/` — that overwrites the source of truth with a potentially stale snapshot.
+Always check which side is newer before syncing.
 
 ---
 
