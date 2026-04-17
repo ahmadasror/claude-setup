@@ -1,10 +1,21 @@
 # Claude Setup — Global Agent Config
 
-This repo contains Claude Code agent definitions, hooks, and rules synced to `~/.claude/`.
+This repo mirrors the agent definitions, hooks, and rules from `~/.claude/`.
 
 ## Sync Convention
 
-Every file under `agents/`, `rules/`, and `hooks/` in this repo mirrors `~/.claude/{dir}/`. After editing here, copy to `~/.claude/` manually or via the sync hook.
+**Source of truth: `~/.claude/`** — never the repo.
+
+To sync: copy FROM `~/.claude/{dir}/` TO this repo, then commit and push.
+
+```bash
+cp ~/.claude/agents/*.md agents/
+cp ~/.claude/rules/*.md rules/
+cp ~/.claude/hooks/*.* hooks/
+git add -p && git commit -m "chore: sync agents/rules/hooks from ~/.claude"
+```
+
+Never copy FROM this repo TO `~/.claude/` — that overwrites the source of truth with a potentially stale snapshot.
 
 ---
 
