@@ -5,7 +5,7 @@ Personal Claude Code configuration: custom agents, global rules, hooks, and sett
 ## Structure
 
 ```
-agents/       # Custom subagent definitions (15 agents — 7 pipeline + 8 supporting)
+agents/       # Custom subagent definitions (11 agents — 7 pipeline + 4 supporting)
 rules/        # Global rules applied to all projects
 hooks/        # Shell scripts triggered by Claude Code hooks
 settings.json # Global Claude Code settings
@@ -68,18 +68,14 @@ git diff   # review before commit
 | night-builder | Autonomous unattended builder (code + unit tests) | opus |
 | pimpro | Pipeline status aggregator / dashboard | sonnet |
 
-### Supporting (8)
+### Supporting (4)
 
 | Agent | Purpose | Model |
 |---|---|---|
-| architect-corebanking | Core banking architecture (ledger, settlement, compliance) | opus |
 | architect-financial | Financial-grade architecture (audit, idempotency) | opus |
-| doc-tidier | Documentation auditor & restructurer | opus |
 | planner | Implementation strategy planning | opus |
 | presenter | HTML slide decks (management-level) | opus |
-| go-reviewer | Go code quality review | sonnet |
 | security-reviewer | Security vulnerability review | sonnet |
-| tdd-guide | Test-driven development workflow guide | sonnet |
 
 See `AGENT_WORKFLOW.md` for execution order, inputs/outputs, cross-agent contracts (UI Selectors).
 
