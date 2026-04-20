@@ -458,6 +458,42 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 # Prompt: "Generate status report"
 ```
 
+### Supporting agents (non-pipeline)
+
+```bash
+# Core banking architecture review (ledger, settlement, compliance)
+# Invoke: architect-corebanking
+# Prompt: "Review arsitektur {module} dari perspektif ledger integrity + settlement"
+
+# Financial-grade forensic audit review
+# Invoke: architect-financial
+# Prompt: "Audit {module} untuk idempotency + immutable ledger compliance"
+
+# Go code quality review
+# Invoke: go-reviewer
+# Prompt: "Review {service-path}/ untuk quality + best practices"
+
+# Security vulnerability review
+# Invoke: security-reviewer
+# Prompt: "Audit {service-path}/ untuk OWASP Top 10"
+
+# TDD workflow guidance
+# Invoke: tdd-guide
+# Prompt: "Guide TDD for implementing {feature}"
+
+# Implementation planning (feature-specific strategy)
+# Invoke: planner
+# Prompt: "Plan implementation for {FR-ID} dari docs/fr/{module}/"
+
+# Documentation audit & restructure
+# Invoke: doc-tidier
+# Prompt: "Audit docs/ + Confluence, propose restructure"
+
+# HTML slide deck (management-level)
+# Invoke: presenter
+# Prompt: "Generate deck for {topic}, target audience: management"
+```
+
 ---
 
 ## AI Discovery — Helper Scripts vs Re-Discovery

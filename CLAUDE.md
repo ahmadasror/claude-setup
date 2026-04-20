@@ -2,23 +2,19 @@
 
 This repo mirrors the agent definitions, hooks, and rules from `~/.claude/`.
 
+> **Source of truth for pipeline order, inputs/outputs, and cross-agent contracts**: `AGENT_WORKFLOW.md`. Anything here that conflicts with that doc is stale — update or delete.
+
 ## Sync Convention
 
-Sync direction depends on the assignment:
-
-- **`~/.claude/` → repo**: after editing agents/rules locally, push to repo to persist
-- **repo → `~/.claude/`**: after pulling updates from another machine or collaborator
+One-way: `~/.claude/` is the live copy, this repo is the mirror.
 
 ```bash
-# ~/.claude → repo
+# After editing ~/.claude/agents/*.md locally
 cp ~/.claude/agents/*.md agents/
-git add -p && git commit -m "chore: sync agents from ~/.claude"
-
-# repo → ~/.claude
-cp agents/*.md ~/.claude/agents/
+git diff   # review before commit
 ```
 
-Always check which side is newer before syncing.
+For repo → `~/.claude/` (onboarding a new machine), see `README.md` § Install.
 
 ---
 
@@ -112,13 +108,7 @@ docs/
 
 ### Agent Ownership
 
-| Agent | Reads from | Writes to | Touches code |
-|---|---|---|---|
-| requirement-gatherer | User input, discovery | `docs/prd/`, `docs/discovery/` | NO |
-| fr-writer | `docs/prd/` | `docs/fr/` | NO |
-| architect | `docs/prd/`, `docs/fr/` | `docs/architecture/` | Read-only (patterns) |
-| tester-explorer | `docs/prd/`, `docs/fr/` | `docs/test-scenarios/` | NO |
-| night-builder | `docs/fr/`, `docs/architecture/` | Code, `docs/night-builds/` | YES |
+See `AGENT_WORKFLOW.md` §Agent Contract Table — canonical mapping of reads/produces/consumers per agent. Do not duplicate here; update the workflow doc instead.
 
 ### Key Rules
 

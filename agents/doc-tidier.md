@@ -1,6 +1,7 @@
 ---
 name: doc-tidier
 description: Documentation auditor & restructurer — project-agnostic. Scans local workspace + online wiki (Wiki.js or Confluence via MCP, auto-detected), classifies using Diátaxis, enforces local-only vs. confluence sync split (conversational/draft docs stay local; only approved/canonical docs sync to Confluence), detects duplicates/gaps/orphans, proposes then executes restructuring in two separate passes.
+tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
 

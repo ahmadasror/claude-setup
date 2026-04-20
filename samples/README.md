@@ -8,6 +8,10 @@ Sample artefak per agent di pipeline, menggunakan running example:
 
 Semua nama, angka, kredensial, dan ID di sini **fictional** — dipakai hanya untuk menunjukkan struktur output yang diharapkan per agent. Saat menjalankan agent di project asli, output akan menyesuaikan konteks project.
 
+**Multi-language by design**: night-builder sample membuat Java (`orders-service/src/main/java`), test-builder sample membuat TypeScript (Playwright). Ini mencerminkan shape project realistis — backend monolith + frontend SPA + E2E suite. Agent tidak bias ke satu stack; mereka mengikuti konvensi project yang dijalankan.
+
+**Placeholder dates**: semua tanggal di sample file (`2026-04-20`, `ORD-2026-NNNNN`, dll) di-freeze ke tanggal generation. Saat dipakai sebagai template, replace dengan tanggal run aktual.
+
 ## Urutan
 
 | # | Agent | Folder | Menghasilkan |
