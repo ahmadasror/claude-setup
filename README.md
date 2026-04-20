@@ -46,3 +46,9 @@ cp settings.json ~/.claude/settings.json
 - **git-workflow.md** - Conventional commits, branch naming
 - **security.md** - No hardcoded secrets, parameterized queries
 - **testing.md** - TDD workflow, table-driven tests
+
+## Docs
+
+- **AGENT_WORKFLOW.md** - Pipeline execution order, input/output per agent, and cross-agent contracts (UI Selectors, helper-script pattern).
+- **STYLE_GUIDE.md** - Visual design system for HTML slide decks consumed by the `presenter` agent.
+- **CLAUDE.md** - Project-level instructions and agent output contract.

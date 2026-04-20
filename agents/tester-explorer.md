@@ -61,7 +61,7 @@ See `docs/architecture/testing/e2e-state-management.md` for the full pg_dump / p
 
 **Calendar framing — mimic real production usage**: Happy path steps must be anchored to real
 business calendar dates, not abstract state transitions. For every flow with a time dimension
-(payroll cutoff, THR lebaran date, leave period, contract expiry), map each step to a realistic
+(e.g. payroll cutoff, bonus payout date, leave period, contract expiry), map each step to a realistic
 H-N day relative to the key business event. Use `setBusinessDate(page, 'yyyy-MM-dd')` (from
 `e2e/fixtures/business-date.ts`) to inject the correct business date per step. Never write a
 happy path test where all steps use the same date — the system behaves differently on H-5 vs H-1.
@@ -80,13 +80,13 @@ in the Happy Path section, mapping each step to its H-N date and actor.
 ## Assertion Shape — Value-First, Then State
 
 A passing state transition is not the same as a passing test. It is entirely possible (and has
-happened — see F-01 `Rp 0` incident 2026-04-17) for every state transition to succeed while the
+happened in practice) for every state transition to succeed while the
 underlying data is wrong. The E2E test must prove **the data is correct**, not just **the state
 machine moved**.
 
 Every happy-path test step therefore asserts at **three tiers**, in this order:
 
-| Tier | What it proves | Example (F-01 payroll) |
+| Tier | What it proves | Example (payroll domain) |
 |---|---|---|
 | **Tier 1 — Value correctness** | The business numbers rendered to the user are the expected numbers | `totalGross === {expected}`, `{persona}.netSalary === {expected}` |
 | **Tier 2 — Aggregate invariants** | Relationships between values hold | `totalGross === Σ results.grossSalary`, `totalNet + totalDeductions === totalGross` |
@@ -98,10 +98,10 @@ Rules:
    steps (e.g., lock the period) that truly have no user-visible value still assert the most
    recent value snapshot (i.e. `totalGross` computed upstream must still be correct post-lock).
 2. **Tier-1 expected values come from seed data, not from the system under test.** The API TC
-   file embeds expected numerical values (gross, net, PPh 21, deductions) per seeded persona;
+   file embeds expected numerical values (gross, net, tax, deductions) per seeded persona;
    FE specs reference those numbers directly, not via `API response → assert against itself`.
 3. **If the UI renders a currency / count / percentage, that rendered value is asserted.** Not
-   just "the API returned a 200". Visual-only breakage (e.g., `Rp 0` from a field-name mismatch)
+   just "the API returned a 200". Visual-only breakage (e.g., `0` amount rendered from a field-name mismatch)
    is caught only by asserting the rendered text on the page, not the JSON underneath.
 4. **When seed data does not yet embed expected values**, flag it in Phase 2 as
    `MISSING — expected value` and block Phase 3 generation for that flow until the value is
@@ -128,11 +128,11 @@ Rules for Phase 3 generation:
    to update.
 3. **Record the FR testid table rows used per step.** In the Phase 3 FE step detail (`### FE-NN-M`),
    when a step asserts on or clicks a testid, cite the FR row it came from:
-   `(testid from fr-payroll-run.md §6.2 — `summary-gross`)`. This lets reviewers trace the spec
+   `(testid from fr-{workflow}.md §N — `summary-gross`)`. This lets reviewers trace the spec
    back to the contract.
 4. **Portaled dialogs use the helper, not bare testids.** Dialogs/sheets/popovers render outside
-   the parent DOM via reka-ui portal; a chained `getByTestId(dialog).getByRole(button)` returns
-   zero matches. Use `e2e/helpers/portal-dialog.ts::confirmPortaledDialog()` — see
+   the parent DOM via a portal mechanism; a chained `getByTestId(dialog).getByRole(button)` returns
+   zero matches. Use a project helper (e.g. `e2e/helpers/portal-dialog.ts`) that unwraps the portal — see
    `docs/architecture/testing/portaled-dialog-pattern.md`.
 
 ---
@@ -315,11 +315,11 @@ of truth for what values Phase 2 seed data must embed expectations for.
 
 Format: `INV-{NN}: {relationship}` (short, falsifiable).
 
-Examples (payroll):
-- INV-01: `totalGross === Σ payroll_results.gross_salary`
-- INV-02: `totalGross === totalNet + totalDeductions + totalPph21`
+Examples (payroll-like domain):
+- INV-01: `totalGross === Σ results.gross_salary`
+- INV-02: `totalGross === totalNet + totalDeductions + totalTax`
 - INV-03: `totalEmployees === successCount + errorCount`
-- INV-04: per employee: `gross - deductions - pph21 === net`
+- INV-04: per employee: `gross - deductions - tax === net`
 - INV-05: `totalGross` is stable across status transitions (DRAFT → REVIEW → ... → LOCKED) —
   transitions must not alter aggregates
 - INV-06: {persona name} ({EMP-XXXX}) in {month YYYY}: gross === {expected}, net === {expected}
@@ -352,7 +352,7 @@ Read index.md Phase 1 section as ground truth.
 ```
 Glob: backend/cmd/seed/**/*.go
 Glob: backend/migrations/**/*.sql          → look for INSERT statements
-Glob: payroll-service/src/main/resources/db/migration/**/*.sql
+Glob: {service}/src/main/resources/db/migration/**/*.sql
 Glob: **/testdata/**
 Glob: **/fixtures/**
 ```
@@ -385,7 +385,7 @@ Format:
 - `gross_salary`: {exact Rp amount}
 - `total_deductions`: {exact Rp amount}
 - `net_salary`: {exact Rp amount}
-- `pph21_amount`: {exact Rp amount}
+- `tax_amount`: {exact amount}
 - `ptkp_status`: {code}
 - Aggregates this persona contributes to: INV-01, INV-04, INV-06
 - Derivation: {how was this value computed — basic salary × working days × tariff, etc.}
@@ -402,8 +402,8 @@ section in its owning FR file (per
 
 | Flow | Page | Owning FR | UI Selectors section present? | Missing testids |
 |---|---|---|---|---|
-| F-01 | `/hr/payroll` | `fr-payroll-run.md` §6.1 | ✅ | — |
-| F-01 | `/hr/payroll/runs/:id` | `fr-payroll-run.md` §6.2 | ✅ | — |
+| F-01 | `{module-path}` | `fr-{workflow}.md` §N.N | ✅ | — |
+| F-01 | `{module-path}/{sub-route}` | `fr-{workflow}.md` §N.N | ✅ | — |
 | F-NN | `{path}` | `{fr-file}.md §?` | ❌ or ✅ | {list} |
 
 If any row is ❌ or has missing testids, mark that flow's FE spec as **blocked — UI Selectors
@@ -586,12 +586,12 @@ For each step, also write the detailed spec:
 2. ...
 
 **UI selectors used** (cite FR row; see `docs/architecture/testing/ui-selector-contract.md`):
-- `summary-gross` — from `fr-payroll-run.md` §6.2
-- `submit-review-btn` — from `fr-payroll-run.md` §6.2
+- `summary-gross` — from `fr-{workflow}.md` §N.N
+- `submit-review-btn` — from `fr-{workflow}.md` §N.N
 - (one row per testid referenced in this step)
 
 **Assertions** (three tiers, in order):
-- **Tier 1 — Value**: UI element renders the expected number — `expect(page.getByTestId('summary-gross')).toHaveText('Rp 2.438.500.000')`. Expected value comes from seed data, not from the API response being asserted against itself.
+- **Tier 1 — Value**: UI element renders the expected number — `expect(page.getByTestId('summary-gross')).toHaveText('{formatted amount}')`. Expected value comes from seed data, not from the API response being asserted against itself.
 - **Tier 2 — Invariant**: `expect(summary.total_gross).toBe(results.reduce((s,r)=>s+r.gross_salary,0))` and similar cross-field checks.
 - **Tier 3 — State**: `expect(period.status).toBe('REVIEW')`.
 - **Fallback**: if a UI element is missing, API call the transition AND assert the tier-1 value via the API response, log warning, continue flow. A step that falls back to API-only still owes a value assertion.
@@ -620,7 +620,7 @@ Each negative FE TC:
 **Not applicable — no UI for this scenario**
 
 {If UI surface exists:}
-**Page**: `/hr/payroll/...`
+**Page**: `{module-path}/...`
 **Actor**: {role}
 **Precondition**: {SEED-XX — exact state required, employee ID if relevant}
 

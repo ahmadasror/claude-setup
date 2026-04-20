@@ -39,7 +39,7 @@ Read `CLAUDE.md`:
 - Service URLs:
   - Frontend: `http://localhost:8081` (Docker prod), `http://localhost:3000` (dev)
   - Backend: internal Docker — accessed via env `BACKEND_URL` (default `http://localhost:8090`)
-  - Payroll: internal Docker — accessed via env `PAYROLL_URL` (default `http://localhost:8082`)
+  - {secondary service}: internal Docker — accessed via env `{SERVICE}_URL` (e.g. `http://localhost:8082`)
 
 Read `e2e/playwright.config.ts` for base config (timeout, baseURL default, workers).
 
@@ -238,7 +238,7 @@ After generating all files, run the tests:
 cd e2e && npx playwright test tests/{module}/ --reporter=list,'json:.pw-results.json'
 ```
 
-- Run against Docker services (default URLs: `http://localhost:8082` payroll, `http://localhost:8081` frontend)
+- Run against Docker services (default URLs from CLAUDE.md: backend at `:8090`, secondary services at their own ports, frontend at `:8081`)
 - If services are not running, report that and skip — do NOT start Docker yourself
 - Capture exit code: 0 = all passed, 1 = failures exist
 
@@ -276,11 +276,11 @@ Pass: {N} | Fail: {N} | Skip: {N} | Total: {N}
 docs/test-reports/{date}-{module}-report.md
 
 ### To re-run single flow:
-make test-payroll-e2e
+make test-{module}-e2e
 ```
 
 If tests cannot run (services down), still write the generated files and report:
-"Services not reachable — test files generated, run manually with `make test-payroll-e2e`"
+"Services not reachable — test files generated, run manually with `make test-{module}-e2e`"
 
 ---
 

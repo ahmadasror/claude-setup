@@ -52,8 +52,8 @@ Write a single status table — one row per module:
 ```markdown
 | Module | PRD | Architecture | FR | Test Scenarios | Last Test Run | Last Build | Next Step |
 |--------|-----|-------------|----|----------------|--------------|------------|-----------|
-| Payroll | ✅ | ✅ | ✅ | ⚠️ Phase 2 pending | — | 2026-04-09 ✅ | tester-explorer Phase 2 |
-| Leave | ✅ | ❌ | ✅ | 🔲 | — | — | architect |
+| {module-A} | ✅ | ✅ | ✅ | ⚠️ Phase 2 pending | — | {date} ✅ | tester-explorer Phase 2 |
+| {module-B} | ✅ | ❌ | ✅ | 🔲 | — | — | architect |
 ```
 
 Status codes (based on artifact existence + self-reported status only):
@@ -71,9 +71,9 @@ After the dashboard, list one recommended next step per blocked module — order
 ```markdown
 ## Recommended Next Actions
 
-1. Leave — run `architect` (FR exists but design.md missing)
-2. Payroll — run `tester-explorer Phase 2` (FR complete, Phase 1 done)
-3. Recruitment — run `requirement-gatherer` (no PRD)
+1. {module-B} — run `architect` (FR exists but design.md missing)
+2. {module-A} — run `tester-explorer Phase 2` (FR complete, Phase 1 done)
+3. {module-C} — run `requirement-gatherer` (no PRD)
 ```
 
 Keep it to one action per module. No explanation beyond one line.
