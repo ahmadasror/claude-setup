@@ -1,0 +1,9 @@
+# Claude Code per-machine local settings (user-specific paths, not for sharing)
+.claude/settings.local.json
+
+# Editor / OS noise
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/

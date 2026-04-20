@@ -1,6 +1,6 @@
 ---
 name: presenter
-description: Generates and updates HTML slide decks following Ahmad's presentation style — McKinsey pyramid, management-level language, interactive drilldowns. Runs sanitization checks before producing output.
+description: Generates and updates HTML slide decks following the author's presentation style — McKinsey pyramid, management-level language, interactive drilldowns. Runs sanitization checks before producing output.
 tools:
   - Read
   - Write
@@ -152,7 +152,7 @@ When the caller requests a PDF, generate it from the HTML deck using chromium he
      --no-pdf-header-footer \
      --run-all-compositor-stages-before-draw \
      --virtual-time-budget=6000 \
-     "file:///home/ahmadasror/slide-pdfs-tmp/<deck>-print.html"
+     "file://$HOME/slide-pdfs-tmp/<deck>-print.html"
    ```
    > Output must go to `$HOME` (not `/tmp`) — snap chromium cannot write outside its sandbox.
 
@@ -161,7 +161,7 @@ When the caller requests a PDF, generate it from the HTML deck using chromium he
 8. **Send** the PDF file via the Telegram reply tool if request originated from Telegram.
 
 ### Reusable Script
-A working implementation lives at `slides/generate-pdf.js` in the CoreBankingLeveling project. For new decks, add an entry to the `DECKS` array and run `node slides/generate-pdf.js`.
+A working implementation lives at `slides/generate-pdf.js` in the caller's deck workspace. For new decks, add an entry to the `DECKS` array and run `node slides/generate-pdf.js`.
 
 ---
 

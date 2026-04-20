@@ -1,6 +1,6 @@
 # Slides — Global Style Guide
 
-**Scope:** Semua deck HTML di folder `slides/` (gadai-emas, slide-update, dst)
+**Scope:** Semua deck HTML di folder `slides/` (per-deck subfolder, e.g. `deck-a/`, `deck-b/`)
 **Last Updated:** 2026-04-15
 
 > Dokumen ini adalah single source of truth untuk visual design system dan HTML/CSS patterns yang dipakai di semua slide deck workspace ini. Deck-specific content rules ada di masing-masing subfolder.
@@ -11,12 +11,12 @@
 
 | CSS Token | Hex | Makna / Penggunaan |
 |---|---|---|
-| `--accent` | `#F58220` | Brand orange — Core Prospera, happy path, action emphasis |
+| `--accent` | `#F58220` | Brand orange — primary product, happy path, action emphasis |
 | `--accent-dark` | `#D57012` | Header border, chip label, Gantt bar text |
-| `--brown` | `#7C6A55` | Frontend KC / FOS, lelang node, ITSC header |
-| `--info` | `#0369a1` | Satelit, renewal loop, Partner API, Gantt blue bars |
+| `--brown` | `#7C6A55` | Frontend layer, alt-path node, status-deck header |
+| `--info` | `#0369a1` | Satellite services, loop path, partner API, Gantt blue bars |
 | `--success` | `#16a34a` | Done/closed state, Go Live, Dev ready |
-| `--danger` | `#dc2626` | Error/nunggak, EGLS critical, Red indicator |
+| `--danger` | `#dc2626` | Error/overdue, critical state, Red indicator |
 | `--yellow` | `#D9A400` | Benchmark chip, In Progress banner, Yellow indicator |
 | `--text` | `#0F172A` | Body text utama |
 | `--text-muted` | `#475569` | Secondary text, catatan |
@@ -25,7 +25,7 @@
 | `--secondary` | `#FFF3EB` | Highlight background (current phase, active) |
 | `--surface` | `#FFFFFF` | Card / slide surface |
 | `--border` | `rgba(124,106,85,0.12)` | Divider, card border |
-| `#7C3AED` | purple | Alternatif path khusus (e.g. pelunasan dipercepat) |
+| `#7C3AED` | purple | Alternatif path khusus (e.g. accelerated/alt flow) |
 | `#F0F9FF` | light blue | External system box fill (dashed border) |
 
 ---
@@ -96,13 +96,13 @@ padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;
 - **External system:** dashed border (`stroke-dasharray="5,3"`) + lighter fill
 - **Legend:** HTML flex row di **bawah** SVG (bukan di dalam SVG) supaya tidak tumpuk
 
-### Lifecycle SVG (gadai-emas)
+### Lifecycle SVG (example: product lifecycle deck)
 - viewBox `0 0 1100 160`
-- Warna branch: orange=happy path · blue dashed=renewal · purple dashed=dipercepat · red=nunggak · brown=lelang/kerja sama
+- Warna branch: orange=happy path · blue dashed=renewal · purple dashed=accelerated · red=overdue · brown=alternative/partner
 
 ### Architecture SVG
 - viewBox `0 0 720 470`
-- Layer: Frontend/FOS (brown) → Core (orange fill) → Satelit (blue outline) → Downstream (grey)
+- Layer: Frontend (brown) → Core (orange fill) → Satellite (blue outline) → Downstream (grey)
 - Connector warna mengikuti target layer
 
 ### Phase Tracker
@@ -121,7 +121,7 @@ padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;
 - Milestone: `<polygon>` diamond + dashed guide line
 - Critical path: bar merah (`--danger`) + warning badge (stroke rect)
 
-### Project Indicator (slide-update / ITSC)
+### Project Indicator (status-update decks)
 | Warna | Class | Makna |
 |---|---|---|
 | Green | indicator-green | On-track |
@@ -138,8 +138,8 @@ padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;
 - **Angka konkret** — hindari "beberapa", "banyak"
 - **Classification watermark:** `DOKUMEN INTERNAL` atau `DOKUMEN RAHASIA` di setiap slide
 
-### Yang WAJIB di-hide dari Management (slide-update / ITSC)
-- Epic ID (E-NNN), ADR ID, Jira ticket ID (TUX-NNN)
+### Yang WAJIB di-hide dari Management (status-update decks)
+- Epic ID (E-NNN), ADR ID, Jira ticket ID (ABC-NNN)
 - Story point, sprint number, velocity
 - Nama modul teknis internal → pakai terjemahan bisnis
 
@@ -147,9 +147,10 @@ padding: 2px 6px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;
 
 ## 6. Deck Index
 
+> Daftar deck aktif di-maintain per-workspace. Template kolom:
+
 | Deck | Folder | Audience | Source of Truth | Live URL |
 |---|---|---|---|---|
-| Gadai Emas Syariah | `slides/gadai-emas/` | Internal tim | `content.md` | `https://tuxceria.biz.id/slides/gadai-emas/` |
-| ITSC Business Enablement Update | `slides/slide-update/` | Management (ITSC) | `updates/<period>.md` | `https://tuxceria.biz.id/slide-update/` |
+| `<deck name>` | `slides/<slug>/` | `<audience>` | `<source file>` | `<url>` |
 
-> Deck-specific content rules: lihat `slides/gadai-emas/content.md` § Workflow dan `slides/slide-update/style-guide.md`.
+> Deck-specific content rules hidup di masing-masing subfolder (`slides/<slug>/content.md` atau `style-guide.md`).

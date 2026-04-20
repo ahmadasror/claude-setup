@@ -56,7 +56,7 @@ After discovery research and before writing PRDs, identify the **bounded context
 
 - **New project**: always — before the first PRD
 - **New feature area**: if the feature touches areas not covered by existing domains
-- **Never skip**: if no domain map exists on wiki yet, create one before PRD
+- **Never skip**: if no domain map exists in `docs/architecture/domains/` yet, create one before PRD
 
 ### How to identify domains
 
@@ -68,7 +68,7 @@ After discovery research and before writing PRDs, identify the **bounded context
 
 ### Domain map deliverable
 
-Publish to `<prefix>/architecture/domains/` as index page:
+Write to `docs/architecture/domains/index.md`:
 
 ```markdown
 # Domain Map
@@ -101,7 +101,7 @@ Publish to `<prefix>/architecture/domains/` as index page:
 
 ## PRD Writing
 
-If PRD: split by workflow, not by document section. Each workflow = 1 PRD page. Publish to `<prefix>/specs/{feature}/{workflow}` with an index page at `<prefix>/specs/{feature}`. Link back to discovery page as source.
+If PRD: split by workflow, not by document section. Each workflow = 1 PRD page. Write to `docs/prd/{module}/{workflow}.md` with an index page at `docs/prd/{module}/index.md`. Link back to discovery page as source.
 
 ### Domain references in PRD
 
@@ -121,18 +121,40 @@ This table goes at the top of both the index page and each workflow PRD.
 
 ### Index page structure
 
-`<prefix>/specs/{feature}/`:
+`docs/prd/{module}/index.md`:
 - Executive summary
 - Personas
 - **Domains Affected** (table — which domains, read/write, what operations)
-- Workflow map (which workflows exist and how they connect)
-- NFR
-- Iteration plan
-- References (link to discovery, link to domain map)
+- **Flow Map** — one block per end-to-end business process (see format below)
+- **Workflow File Map** — table mapping each workflow file to its FRs and domain
+- NFR summary
+- References (link to discovery, link to domain map, link to FR layer)
+
+### Flow Map format
+
+Each flow in the Flow Map must have:
+
+```markdown
+### F-{NN}: {Flow Name}
+
+**Trigger**: {what starts this flow}
+**Actor**: {who does what}
+**Outcome**: {what the user gets when complete}
+**Prerequisite**: {other flows or conditions that must be satisfied first}
+
+**Business steps**:
+1. {step}
+2. {step}
+...
+
+**PRD workflows**: {list of workflow files this flow touches}
+```
+
+> Flow Map is the contract between PRD and FR layers. fr-writer reads it and enriches each flow block with FR refs, ticket refs, and test scenario links.
 
 ### Workflow PRD page structure
 
-`<prefix>/specs/{feature}/{workflow}`:
+`docs/prd/{module}/{workflow}.md`:
 1. **Domains Affected** (table — subset relevant to this workflow)
 2. Workflow overview (trigger, actors, decision tree)
 3. Functional Requirements (tied to workflow steps)
@@ -144,17 +166,24 @@ This table goes at the top of both the index page and each workflow PRD.
 
 ## Project Discovery
 
-Read `CLAUDE.md` and `local-tools/.credentials` for project context and Wiki.js access. Then read the wiki **home page first** — it's the sitemap. Use it to navigate, don't cherry-pick from a flat page list.
+Read `CLAUDE.md` for project context, conventions, and doc structure. Check `docs/` for existing PRDs, FRs, and architecture docs — don't recreate what already exists.
 
-**Check for existing domain map**: before domain discovery, check if `<prefix>/architecture/domains/` already exists. If yes, read it and update rather than recreate.
+**Check for existing domain map**: before domain discovery, check if `docs/architecture/domains/` already exists. If yes, read it and update rather than recreate.
 
 ## Publishing
 
-Publish discovery output to `<prefix>/discovery/{date}-{topic}` — append-only, never edit after publish. Findings that get validated later get distilled into living docs (competitors/, roadmap/, overview) as separate updates.
+All output is written to local `docs/` — no external wiki or CMS.
 
-Domain map publishes to `<prefix>/architecture/domains/` — this IS a living doc, update on each new feature.
+| Artifact | Path |
+|---|---|
+| Discovery journal | `docs/discovery/{date}-{topic}.md` — append-only, never edit after publish |
+| Domain map | `docs/architecture/domains/index.md` — living doc, update per new feature |
+| PRD index | `docs/prd/{module}/index.md` |
+| PRD workflow | `docs/prd/{module}/{workflow}.md` |
 
-Use Wiki.js GraphQL `pages.create` mutation with credentials from `.credentials`.
+Findings validated later get distilled into living docs as separate file updates — not edits to the original discovery journal.
+
+**Handoff**: requirement-gatherer stops at PRD. When PRD is complete, tell the user to run fr-writer next.
 
 ## Boundaries
 

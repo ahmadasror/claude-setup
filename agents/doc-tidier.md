@@ -33,17 +33,27 @@ For each doc capture: path/URL, title, word count, last modified, owner, current
 
 | Category | Target Path | Generator | Target Store |
 |----------|------------|-----------|--------------|
-| Discovery journal | `/discovery/{date}-{topic}` | requirement-gatherer | **local-only** |
-| Night-builder report | `/reports/night-builder/{date}-{task}` | night-builder | **local-only** |
-| PRD (draft) | `/specs/{feature}/{workflow}` | requirement-gatherer | **local-only** |
-| PRD (approved) | `/specs/{feature}/{workflow}` | requirement-gatherer | **confluence** |
-| Domain map | `/architecture/domains/` | requirement-gatherer | **confluence** |
-| Architecture | `/architecture/{module}/` | architect | **confluence** |
-| ADR | `/architecture/adr/{NNN}-{title}` | architect | **confluence** |
-| Epic + tickets | `/epics/{epic-name}` | fr-writer | **confluence** |
-| Runbook | `/ops/runbooks/` | human | **confluence** |
-| Tutorial | `/ops/tutorials/` | human | **confluence** |
-| Reference (ops) | `/ops/reference/` | human | **confluence** |
+| Discovery journal | `docs/discovery/{date}-{topic}` | requirement-gatherer | **local-only** |
+| Night-builder plan/report | `docs/night-builds/{date}-{topic}-{plan\|report}` | night-builder | **local-only** |
+| PRD index | `docs/prd/{module}/index.md` | requirement-gatherer | **local-only** |
+| PRD workflow | `docs/prd/{module}/{workflow}.md` | requirement-gatherer | **local-only** |
+| FR index (epics + ticket stubs) | `docs/fr/{module}/index.md` | fr-writer | **local-only** |
+| FR workflow (AC + response codes) | `docs/fr/{module}/{workflow}.md` | fr-writer | **local-only** |
+| Domain map | `docs/architecture/domains.md` | architect | **local-only** |
+| Architecture design | `docs/architecture/{module}/design.md` | architect | **local-only** |
+| ADR | `docs/architecture/adr/{NNN}-{title}.md` | architect | **local-only** |
+| Test scenarios | `docs/test-scenarios/tester-{domain}-{date}.md` | tester-explorer | **local-only** |
+| Runbook | `docs/ops/runbooks/` | human | **local-only** |
+| E2E test plan | `docs/ops/testing/` | human | **local-only** |
+| Reference (ops) | `docs/ops/reference/` | human | **local-only** |
+
+**Agent output contract rules** — enforce these during audit:
+
+1. `docs/prd/` is PRD-pure: decision tree, business rules, wireframes, actors. Flag if it contains Go/code snippets, SQL, or endpoint request/response shapes — those belong in `docs/fr/`.
+2. `docs/fr/{module}/{workflow}.md` must have `## Acceptance Criteria` (condition → expected) and `## API Response Codes` table. Flag as gap if missing — tester-explorer cannot run without these.
+3. `docs/architecture/` is design-level only: domain boundaries, interaction patterns, ADRs. Flag if it contains field-level specs or response codes.
+4. Architecture docs found inside `docs/prd/` (e.g. `specs/{module}/00-architecture.md`) are misplaced — propose move to `docs/architecture/`.
+5. Night-builder outputs belong in `docs/night-builds/`, not scattered at project root.
 
 **Store definitions**:
 - **`local-only`** — conversational, in-progress, or process artefacts (not the final product). Never push to Confluence.
@@ -78,7 +88,28 @@ Tag every doc with its target store before proposing any moves:
 
 *Universal baseline* (every project): home/sitemap, README, onboarding tutorial, glossary, API reference (if exposed), data model reference (if owns state), auth/authz, critical-ops runbooks, incident response, ADR index, changelog.
 
-*Agent-flow pipeline gaps* (if project uses shared flow): `/specs/` without `/architecture/` → architect not run · `+ /epics/` missing → fr-writer not run · `/discovery/` without `/specs/` → PRD phase not run.
+*Agent-flow pipeline gaps* (if project uses shared flow):
+
+Read `CLAUDE.md` for **Product Module Map** if it exists — this lists all modules, their folder names, business names, and PRD/FR status. Use this as ground truth for gap detection. If no module map exists, derive modules from `docs/prd/` folder names.
+
+For each module, check pipeline completeness:
+
+| Check | Signal | Meaning |
+|---|---|---|
+| `docs/prd/{module}/` missing | PRD not written | requirement-gatherer not run for this module |
+| `docs/prd/{module}/index.md` only, no workflow files | Module PRD is monolith | needs splitting into workflow PRDs |
+| `docs/fr/{module}/` missing or empty | FR not written | fr-writer not run for this module |
+| `docs/fr/{module}/{workflow}.md` missing `## Acceptance Criteria` | AC incomplete | tester-explorer blocked |
+| `docs/fr/{module}/{workflow}.md` missing `## API Response Codes` | Response codes missing | tester-explorer blocked |
+| `docs/architecture/` missing | Architecture not designed | architect not run |
+| `docs/test-scenarios/` missing or empty | No test scenarios | tester-explorer not run |
+
+Flag **business vocabulary mapping** mismatches: if CLAUDE.md defines that folder `platform-admin` = business name "Multitenancy", report any docs that use the wrong name inconsistently.
+
+Pipeline readiness summary per module (include in audit report):
+```
+| Module | Business Name | PRD | FR (AC) | FR (Response Codes) | Test Scenarios | Next Agent |
+```
 
 *Domain overlay* — detect from CLAUDE.md/repo/code. Apply ONLY matching overlay; ask user if unclear; don't fabricate if nothing fits.
 - **Financial / Payments**: ledger, settlement cutoff, idempotency, saga, reconciliation, fraud rules, regulatory mapping (OJK/BI, PCI-DSS), DR with RTO/RPO, audit log schema
@@ -91,16 +122,30 @@ Tag every doc with its target store before proposing any moves:
 
 Pick ONE target structure and record the choice + reason in the audit report.
 
-**Option A — Shared agent-flow** (project uses the requirement-gatherer → architect → fr-writer pipeline; detect via existing `/discovery/`, `/specs/`, `/architecture/`, `/epics/` folders):
+**Option A — Shared agent-flow** (project uses the requirement-gatherer → fr-writer → architect → tester-explorer pipeline; detect via existing `docs/discovery/`, `docs/prd/`, `docs/fr/`, `docs/architecture/` folders):
 
 ```
-{prefix}/
-├── home
-├── discovery/{date}-{topic}
-├── specs/{feature}/{workflow}
-├── architecture/{domains,{module},adr/{NNN}-{title}}
-├── epics/{epic-name}
-└── ops/{runbooks,tutorials,reference}
+docs/
+├── prd/{module}/
+│   ├── index.md                    ← PRD index (requirement-gatherer)
+│   └── {workflow}.md               ← workflow PRD: actors, decision tree, business rules
+├── fr/{module}/
+│   ├── index.md                    ← epic breakdown + ticket stubs (fr-writer)
+│   └── {workflow}.md               ← AC + API response code table (fr-writer)
+├── architecture/
+│   ├── domains.md                  ← domain map + boundaries (architect)
+│   ├── {module}/design.md          ← module design decisions (architect)
+│   └── adr/{NNN}-{title}.md        ← individual ADRs (architect)
+├── test-scenarios/
+│   └── tester-{domain}-{date}.md  ← test scenarios (tester-explorer)
+├── night-builds/
+│   └── {date}-{topic}-{plan|report}.md  ← night-builder output
+├── discovery/
+│   └── {date}-{topic}.md          ← research journals (requirement-gatherer, append-only)
+└── ops/
+    ├── runbooks/
+    ├── testing/
+    └── reference/
 ```
 
 **Option B — Pure Diátaxis** (no shared flow):
