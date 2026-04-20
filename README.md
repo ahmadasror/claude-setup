@@ -52,3 +52,4 @@ cp settings.json ~/.claude/settings.json
 - **AGENT_WORKFLOW.md** - Pipeline execution order, input/output per agent, and cross-agent contracts (UI Selectors, helper-script pattern).
 - **STYLE_GUIDE.md** - Visual design system for HTML slide decks consumed by the `presenter` agent.
 - **CLAUDE.md** - Project-level instructions and agent output contract.
+- **samples/** - End-to-end sample outputs per agent (PRD → Architecture → FR → Test Scenarios → Playwright specs → Night build report → Status dashboard), using a fictional `orders` module as the running example.
