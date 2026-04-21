@@ -1,6 +1,6 @@
 # Claude Setup — Global Agent Config
 
-This repo mirrors the agent definitions, hooks, and rules from `~/.claude/`.
+This repo mirrors the agent definitions and rules from `~/.claude/`.
 
 > **Source of truth for pipeline order, inputs/outputs, and cross-agent contracts**: `AGENT_WORKFLOW.md`. Anything here that conflicts with that doc is stale — update or delete.
 
@@ -29,8 +29,9 @@ For repo → `~/.claude/` (onboarding a new machine), see `README.md` § Install
 **Position in agent flow**:
 ```
 requirement-gatherer → PRD
-architect            → Architecture doc
+architect [Mode 1]   → design.md (strategic)
 fr-writer            → Epics + Ticket stubs with AC
+architect [Mode 2]   → api-spec.md (technical contract)
 tester-explorer      → Test scenarios  ← here
 ```
 
@@ -91,8 +92,11 @@ docs/
 │   ├── index.md               epic breakdown + ticket stubs
 │   └── {workflow}.md          structured AC (condition → expected) + API response code table
 │
-├── architecture/            ← Architect — design level only
+├── architecture/            ← Architect — 3 modes
 │   ├── domains.md             domain map, boundaries, interaction patterns
+│   ├── {module}/
+│   │   ├── design.md          Mode 1 output: strategic solution design
+│   │   └── api-spec.md        Mode 2 output: API contracts, error codes, idempotency
 │   └── adr/
 │       └── {NNN}-{title}.md   individual ADRs
 │
@@ -114,12 +118,12 @@ See `AGENT_WORKFLOW.md` §Agent Contract Table — canonical mapping of reads/pr
 
 1. `docs/prd/` — PRD only. No implementation detail (no code snippets, no SQL, no endpoint contract shapes). Decision tree and business rules YES. API request/response shape NO — that belongs in `docs/fr/`.
 2. `docs/fr/{workflow}.md` must contain two mandatory sections: `## Acceptance Criteria` (condition → expected format) and `## API Response Codes` (table: code, HTTP, trigger, endpoint). Test Explorer depends on both.
-3. `docs/architecture/` is design level — domain boundaries, interaction patterns, ADRs. NOT: specific field names, specific response codes, validation rules (those live in `docs/fr/`).
+3. `docs/architecture/` is split across modes: `design.md` (Mode 1) holds strategic design — domain boundaries, integration patterns, ADRs. `api-spec.md` (Mode 2) holds technical contract — endpoints, request/response shape, error codes, idempotency map, field-level constraints.
 4. Test Explorer never greps code for response codes. If `docs/fr/` missing → flag gap, note incomplete, continue with Layer 1 only.
 5. Night Builder and Architect are the only agents that touch code baseline.
 
-### Example Migration Notes (from source project)
+### Example Migration Notes
 
-- `docs/prd/platform-admin/00-architecture.md` should move to `docs/architecture/platform/design.md`
-- Existing workflow PRDs (e.g. `leave-request-flow.md`) contain endpoint contracts — these should be extracted to `docs/fr/leave/leave-request-flow.md`
+- `docs/prd/{module}/00-architecture.md` should move to `docs/architecture/{module}/design.md`
+- Existing workflow PRDs (e.g. `{workflow}-flow.md`) containing endpoint contracts — these should be extracted to `docs/fr/{module}/{workflow}-flow.md`
 - `docs/ops/testing/e2e-test-plan.md` stays — it's env setup / operational. Test Explorer writes to `docs/test-scenarios/` separately.

@@ -21,7 +21,7 @@ Before generating or modifying any slide content, run ALL of these checks. If an
 Verify the caller provided:
 - [ ] **Slide purpose** — what is the slide about?
 - [ ] **Target audience** — who will see this? (default: management)
-- [ ] **Content source** — where does the data come from? (file path, inline data, or Confluence page ID)
+- [ ] **Content source** — where does the data come from? (file path or inline data)
 - [ ] **Output path** — where to write the HTML file
 - [ ] **Deploy path** — where to copy for web serving (optional)
 
@@ -74,7 +74,7 @@ Flag any findings before writing output.
 
 ### Interactivity
 - **Drilldown modals** — click card to show detail in overlay
-- **Confluence hyperlinks** as chip-style links in drilldown modals
+- **External hyperlinks** as chip-style links in drilldown modals
 - Keyboard: arrow keys for navigation, Escape to close modals
 - Touch: swipe left/right for navigation
 - Click zones: left 25% = back, right 25% = forward
@@ -170,7 +170,7 @@ The caller must provide these as part of the prompt:
 |---|---|---|
 | `purpose` | Yes | What the slide/deck is for |
 | `audience` | Yes | Who will view it (default: management) |
-| `content_source` | Yes | File path, inline content, or Confluence page ID |
+| `content_source` | Yes | File path or inline content |
 | `output_path` | Yes | Where to write the HTML |
 | `deploy_path` | No | Web server path for `sudo cp` deployment |
 | `existing_deck` | No | Path to existing deck to modify (for updates) |

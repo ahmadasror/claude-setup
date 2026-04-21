@@ -1,8 +1,8 @@
 ---
 name: test-builder
-description: Reads 3-layer test scenario docs and generates Playwright test files. API layer → APIRequestContext specs. FE layer → browser E2E specs. Does NOT touch source code. Does NOT generate Java tests.
+description: Reads 3-layer test scenario docs and generates Playwright test files. API layer → APIRequestContext specs. FE layer → browser E2E specs. Does NOT touch source code. Does NOT generate backend unit tests.
 tools: Read, Glob, Grep, Write, Bash
-model: opus
+model: sonnet
 ---
 
 # Test Builder Agent

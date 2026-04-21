@@ -13,9 +13,10 @@ requirement-gatherer
         └─ docs/architecture/domains/
                 │
                 ▼
-           architect  ← wajib minimal sekali per modul
+        architect [Mode 1: solution-design]  ← wajib sekali per modul, pre-FR
                 │
-                ├─ docs/architecture/{module}/design.md
+                ├─ docs/architecture/{module}/design.md   ← strategic: bounded context,
+                │                                            entity model, patterns, NFR, ADRs
                 └─ docs/architecture/adr/
                         │
                         ▼
@@ -23,36 +24,44 @@ requirement-gatherer
                         │
                         └─ docs/fr/{module}/
                                 │
-                         ┌──────┴──────┐
-                         ▼             ▼
-                  tester-explorer   night-builder
-                         │          (implementasi: source code + Java unit tests)
-                         │                │
-                  docs/test-scenarios/    ▼
-                         │          architect ← conformity checkpoint
-                         ▼          (berkala, per sprint/milestone)
-                   test-builder          │
-                   (Playwright:     drift? ──YES──→ fr-writer (update FR)
-                    generate +           │                  │
-                    run + report)        NO         tester-explorer (update scenarios)
-                         │
-                  docs/test-reports/
-                         │
-                         └──────────────────────────┐
-                                                     ▼
-                                               pimpro ← supervisi pipeline
-                                               (baca: FR status + artifact existence
-                                                + night-build reports + test reports)
+                                ▼
+                        architect [Mode 2: technical-spec]  ← post-FR, setelah FR tickets selesai
+                                │
+                                └─ docs/architecture/{module}/api-spec.md  ← API contracts,
+                                         │                                    request/response,
+                                         │                                    error codes,
+                                         │                                    idempotency map
+                                 ┌───────┴───────┐
+                                 ▼               ▼
+                          tester-explorer   night-builder
+                                 │          (implementasi: source code + unit tests)
+                                 │                │
+                          docs/test-scenarios/    ▼
+                                 │          architect [Mode 3: conformity]
+                                 ▼          (berkala, per sprint/milestone)
+                           test-builder          │
+                           (Playwright:     drift? ──YES──→ fr-writer (update FR)
+                            generate +           │                  │
+                            run + report)        NO         tester-explorer (update scenarios)
+                                 │
+                          docs/test-reports/
+                                 │
+                                 └──────────────────────────┐
+                                                             ▼
+                                                       pimpro ← supervisi pipeline
+                                                       (baca: FR status + artifact existence
+                                                        + night-build reports + test reports)
 ```
 
 **Aturan urutan:**
 1. `requirement-gatherer` harus selesai dulu — PRD adalah input architect
-2. `architect` wajib dijalankan minimal sekali sebelum `fr-writer` — API contracts dan data model dari architect adalah input fr-writer untuk generate response codes dan AC yang akurat
-3. `tester-explorer` dan `night-builder` berjalan dari FR — bisa paralel setelah FR selesai
-4. `test-builder` berjalan setelah `tester-explorer` Phase 3 selesai — generate Playwright files, run, tulis report
-5. Setelah implementasi berjalan, `architect` dijalankan kembali sebagai **conformity checkpoint** — membandingkan kode dengan `design.md`, melaporkan drift, membuat ADR baru bila ada keputusan yang belum terdokumentasi
-6. Jika conformity checkpoint menemukan drift signifikan → **loop ke fr-writer** untuk update FR yang terpengaruh, lalu tester-explorer untuk update test scenarios
-7. `night-builder` membaca FR + architecture + codebase — bukan hanya FR
+2. `architect` Mode 1 wajib dijalankan sebelum `fr-writer` — menghasilkan solution design: bounded context, entity model, integration pattern, NFR, ADR. **Belum sampai API endpoint detail** — itu wilayah Mode 2
+3. `architect` Mode 2 dijalankan setelah `fr-writer` selesai — derivasi API contracts dari FR tickets yang sudah terdefinisi. Output `api-spec.md` adalah kontrak teknis untuk night-builder
+4. `tester-explorer` dan `night-builder` berjalan paralel setelah Mode 2 selesai
+5. `test-builder` berjalan setelah `tester-explorer` Phase 3 selesai — generate Playwright files, run, tulis report
+6. Setelah implementasi berjalan, `architect` Mode 3 (conformity checkpoint) — membandingkan kode dengan `design.md` + `api-spec.md`, melaporkan drift, membuat ADR baru bila ada keputusan yang belum terdokumentasi
+7. Jika conformity checkpoint menemukan drift signifikan → **loop ke fr-writer** untuk update FR yang terpengaruh, lalu tester-explorer untuk update test scenarios
+8. `night-builder` membaca FR + `api-spec.md` + codebase — bukan hanya FR
 
 **Error traceability:**
 - Playwright inject `X-Request-ID: pw-{id}` di setiap request
@@ -120,17 +129,24 @@ fr-writer  ─── Produces ───▶  ## UI Selectors section di FR file
 |---|---|---|
 | `{domain}-{action}-btn` | `submit-review-btn` | Button action |
 | `{action}-{entity}-dialog` | `confirm-transition-dialog` | Modal/dialog root (portaled) |
-| `{entity}-{field}-input` | `period-year-input` | Input field |
-| `{entity}-{field}-select` | `period-month-select` | Dropdown |
-| `{domain}-{role}` | `summary-gross`, `summary-net` | StatCard value |
-| `{entity}-table` | `payroll-results-table` | DataTable |
+| `{entity}-{field}-input` | `{entity}-{field}-input` | Input field |
+| `{entity}-{field}-select` | `{entity}-{field}-select` | Dropdown |
+| `{domain}-{role}` | `summary-{metric}` | StatCard value |
+| `{entity}-table` | `{entity}-results-table` | DataTable |
 
 ### Anti-patterns (auto-reject di review)
 
 - Invent testid di spec: `page.getByTestId('probably-this-one')`
 - Rename testid untuk "lebih bagus" — renames break every consumer
-- Embed UUID atau state di testid: `calculate-payroll-btn-disabled` (state properti, bukan identity)
+- Embed UUID atau state di testid: `submit-btn-disabled` (state properti, bukan identity)
 - Chain `getByTestId(dialog).getByRole(button)` untuk portaled dialog — gunakan helper project (misal `e2e/helpers/portal-dialog.ts`) yang unwrap portal dulu.
+
+### Status (project-specific — update per project)
+
+> Isi section ini per project saat registry sudah aktif. Contoh:
+> - Scope F-01: **N testids** di-register across N FR files.
+> - Smoke spec + registry: ✅/❌ aktif sejak {date}.
+> - FR yang belum punya section: {list} — pending (lihat `docs/fr/status.md`).
 
 ---
 
@@ -211,43 +227,90 @@ Selesai di PRD. Tidak menyentuh kode. Bilang ke user untuk jalankan `fr-writer` 
 
 ---
 
-## Agent 2 — architect
+## Agent 2 — architect *(Solution Architect)*
 
-**Model**: Opus | **Kapan**: Wajib dijalankan minimal sekali setelah requirement-gatherer selesai per modul, sebelum fr-writer dimulai.
+**Model**: Opus | **Kapan**: Tiga mode berbeda sepanjang pipeline — pre-FR, post-FR, dan post-implementasi.
 
-### Kapan dijalankan
+Agent ini berperan sebagai **Solution Architect**: menjembatani PRD (business requirements) ke solution design, lalu ke technical spec, lalu memvalidasi implementasi. Satu agent, tiga deliverable berbeda.
 
-| Mode | Trigger | Frekuensi |
-|---|---|---|
-| **Initial run** | requirement-gatherer selesai PRD modul baru | Wajib, sekali per modul |
-| **Conformity checkpoint** | Setelah implementasi berjalan — cek apakah kode sesuai arsitektur | Berkala: per sprint atau per milestone |
+### Tiga Mode
 
-**Initial run** menghasilkan architecture doc dan ADRs yang menjadi input fr-writer.
+| Mode | Trigger | Output | Dikonsumsi |
+|---|---|---|---|
+| **1 — solution-design** | requirement-gatherer selesai, sebelum fr-writer | `design.md` | fr-writer |
+| **2 — technical-spec** | fr-writer selesai, sebelum night-builder | `api-spec.md` | night-builder, tester-explorer |
+| **3 — conformity** | Setelah implementasi berjalan — per sprint/milestone | Conversation only | fr-writer (bila drift) · pimpro |
 
-**Conformity checkpoint** tidak menghasilkan doc baru — membaca kode yang ada, membandingkan dengan `docs/architecture/{module}/design.md`, dan melaporkan drift: apa yang sudah sesuai, apa yang menyimpang, apa yang perlu ADR baru.
+---
 
-### Input — Initial run
-- PRD: `docs/prd/{module}/` — cukup untuk menghasilkan API spec
+### Mode 1 — solution-design (pre-FR)
+
+**Input:**
+- PRD: `docs/prd/{module}/` — workflows, state machine, business rules, actors, NFR
 - Discovery docs: `docs/discovery/` — konteks dan constraints
 - Existing codebase — patterns yang sudah ada
 
-> FR **belum ada** saat initial run — architect tidak perlu dan tidak boleh menunggu FR. PRD sudah cukup: workflow steps → endpoints, state machine → error codes, business rules → validation, actors → auth, NFR → constraints.
+**Scope:** Keputusan strategis saja — belum sampai API endpoint detail.
+- Bounded context dan service responsibilities
+- Data model level entity (bukan DDL, bukan field list lengkap)
+- Integration patterns (sync/async, event-driven, saga)
+- Resilience decisions, NFR constraints
+- Technology decisions yang perlu ADR
 
-### Input — Conformity checkpoint
-- Architecture doc: `docs/architecture/{module}/design.md` — baseline
-- FR: `docs/fr/{module}/` — verifikasi response codes konsisten dengan implementasi
+> FR **belum ada** saat Mode 1 — jangan mengarang API shape. PRD cukup untuk: domain boundaries, entity relationships, integration flows, NFR baseline. API contracts menyusul di Mode 2 setelah FR mendefinisikan shape-nya.
+
+**Output:**
+
+| Artifact | Path |
+|---|---|
+| Solution design | `docs/architecture/{module}/design.md` |
+| ADRs (strategic) | `docs/architecture/adr/{NNN}-{title}.md` |
+
+---
+
+### Mode 2 — technical-spec (post-FR)
+
+**Input:**
+- FR: `docs/fr/{module}/` — ticket stubs, AC, response codes, UI Selectors
+- Solution design: `docs/architecture/{module}/design.md` — baseline constraints
+
+**Scope:** Derivasi technical spec dari FR yang sudah terdefinisi.
+- API contracts: endpoint, method, request/response shape, error codes
+- State transition codes konsisten dengan AC di FR
+- Idempotency map
+- Field-level constraints (tipe data, presisi)
+- ADR baru bila ada keputusan teknis yang muncul dari FR detail
+
+**Output:**
+
+| Artifact | Path |
+|---|---|
+| Technical spec | `docs/architecture/{module}/api-spec.md` |
+| ADRs (tactical) | `docs/architecture/adr/{NNN}-{title}.md` |
+
+---
+
+### Mode 3 — conformity (post-implementasi)
+
+**Input:**
+- Solution design: `docs/architecture/{module}/design.md`
+- Technical spec: `docs/architecture/{module}/api-spec.md`
+- FR: `docs/fr/{module}/`
 - Codebase — controller + service untuk deteksi drift
 
-### Output
+**Scope:** Tidak menghasilkan doc baru — membandingkan kode dengan kedua baseline, melaporkan drift.
+- Apa yang sudah sesuai
+- Apa yang menyimpang (dan seberapa signifikan)
+- ADR baru bila ada keputusan implementasi yang belum terdokumentasi
 
-| Artifact | Path | Mode |
-|---|---|---|
-| Architecture doc | `docs/architecture/{module}/design.md` | Initial run |
-| ADRs | `docs/architecture/adr/{NNN}-{title}.md` | Initial run + setiap keputusan baru |
-| Conformity report | conversation (tidak disimpan ke file) | Checkpoint |
+**Output:** Conversation only (tidak disimpan ke file). Bila drift signifikan → trigger fr-writer update.
+
+---
 
 ### Dikonsumsi oleh
-- **fr-writer** — membaca API contracts dan data model untuk generate AC + response codes
+- **fr-writer** — membaca `design.md` (Mode 1) untuk generate AC + response codes dengan constraints yang benar
+- **night-builder** — membaca `api-spec.md` (Mode 2) sebagai kontrak teknis implementasi
+- **tester-explorer** — membaca `api-spec.md` (Mode 2) untuk seed data mapping dan expected values
 
 ---
 
@@ -298,6 +361,7 @@ Notes: {implementation context non-obvious}
 ### Input
 - PRD: `docs/prd/{module}/` (Layer 1 — state machine, business rules)
 - FR: `docs/fr/{module}/` (Layer 2 — AC, response codes)
+- Architecture: `docs/architecture/{module}/api-spec.md` (Layer 3 — expected values, error codes, idempotency map)
 
 ### Output
 
@@ -321,7 +385,7 @@ Single progressive file, 3 phases:
 
 ## Agent 5 — test-builder
 
-**Model**: Opus | **Kapan**: Setelah tester-explorer Phase 3 selesai — generate, run, dan report Playwright tests
+**Model**: Sonnet | **Kapan**: Setelah tester-explorer Phase 3 selesai — generate, run, dan report Playwright tests
 
 ### Input
 - Test scenarios: `docs/test-scenarios/{module}/api/flow-NN-*.md` (API TCs)
@@ -337,7 +401,7 @@ Single progressive file, 3 phases:
 
 ### Batasan
 - **Tidak menyentuh source code** — hanya baca test scenarios, tulis test files
-- **Tidak generate Java tests** — Java unit/controller test tanggung jawab night-builder
+- **Tidak generate backend unit tests** — backend unit/controller test tanggung jawab night-builder
 - **`data-testid` dari FR, bukan tebak** — setiap `page.getByTestId(...)` harus ada row di `## UI Selectors` section FR. Lihat Cross-Agent Contract — UI Selectors di atas.
 - `test.fixme()` untuk TC yang butuh seed state di luar default seed
 - `X-Request-ID: pw-{id}` di-inject ke semua requests untuk error traceability
@@ -352,16 +416,16 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 
 ## Agent 6 — night-builder
 
-**Model**: Opus | **Kapan**: Autonomous overnight implementation
+**Model**: Sonnet | **Kapan**: Autonomous overnight implementation
 
 ### Input
 - FR: `docs/fr/{module}/`
-- Architecture: `docs/architecture/{module}/design.md`
+- Architecture: `docs/architecture/{module}/design.md` · `docs/architecture/{module}/api-spec.md`
 - Test scenarios: `docs/test-scenarios/{module}/`
 - Codebase (read + write)
 
 ### Output
-- Code implementation (source code + Java unit/controller tests)
+- Code implementation (source code + backend unit/controller tests)
 - Report: `docs/night-builds/{date}-{topic}-report.md`
 
 ---
@@ -371,12 +435,13 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 | Agent | Input | Produces | Dikonsumsi oleh |
 |---|---|---|---|
 | **requirement-gatherer** | User intent · `docs/` existing · `CLAUDE.md` | `docs/discovery/` · `docs/architecture/domains/` · `docs/prd/{module}/` | architect · fr-writer · tester-explorer |
-| **architect** *(initial)* | `docs/prd/{module}/` · `docs/discovery/` · codebase | `docs/architecture/{module}/design.md` · `docs/architecture/adr/` | fr-writer |
-| **architect** *(checkpoint)* | `docs/architecture/{module}/design.md` · `docs/fr/{module}/` · codebase | Conformity report (conversation) · ADR baru bila drift | fr-writer (bila drift) · pimpro |
+| **architect** *(Mode 1: solution-design)* | `docs/prd/{module}/` · `docs/discovery/` · codebase | `docs/architecture/{module}/design.md` · ADRs strategis | fr-writer |
+| **architect** *(Mode 2: technical-spec)* | `docs/fr/{module}/` · `docs/architecture/{module}/design.md` | `docs/architecture/{module}/api-spec.md` · ADRs taktis | night-builder · tester-explorer |
+| **architect** *(Mode 3: conformity)* | `docs/architecture/{module}/design.md` · `api-spec.md` · `docs/fr/{module}/` · codebase | Conformity report (conversation) · ADR baru bila drift | fr-writer (bila drift) · pimpro |
 | **fr-writer** | `docs/prd/{module}/` · `docs/architecture/{module}/design.md` | `docs/fr/{module}/index.md` · `docs/fr/{module}/fr-{workflow}.md` (incl. `## UI Selectors`) · `docs/fr/{module}/completion-status.md` | tester-explorer · engineers · night-builder · test-builder · pimpro |
 | **tester-explorer** | `docs/prd/{module}/` · `docs/fr/{module}/` · seed data | `docs/test-scenarios/{module}/` (3 phases) | QA · test-builder · night-builder · engineers · pimpro |
 | **test-builder** | `docs/test-scenarios/{module}/api+fe/` · `CLAUDE.md` | `e2e/tests/{module}/*.spec.ts` · `docs/test-reports/{date}-report.md` | QA · engineers · pimpro |
-| **night-builder** | `docs/fr/{module}/` · `docs/architecture/{module}/design.md` · codebase | Source code + Java unit tests · `docs/night-builds/{date}-report.md` | pimpro |
+| **night-builder** | `docs/fr/{module}/` · `docs/architecture/{module}/design.md` · `docs/architecture/{module}/api-spec.md` · codebase | Source code + backend unit tests · `docs/night-builds/{date}-report.md` | pimpro |
 | **pimpro** | `docs/fr/status.md` · artifact existence · status headers · night-build reports · test reports | `docs/pimpro/status-{date}.md` — pipeline dashboard + next action per modul | User / project owner |
 
 ---
@@ -416,6 +481,7 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 |---|---|---|
 | `security-reviewer` | Security audit — sebelum release | Security findings |
 | `planner` | Planning implementasi fitur spesifik | Implementation plan |
+| `doc-tidier` | Audit & restrukturisasi docs | Restructured docs |
 | `presenter` | Slide deck manajemen | HTML presentation |
 | `architect-financial` | Review arsitektur financial-grade | Architecture review |
 
@@ -428,9 +494,13 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 # Invoke: requirement-gatherer
 # Prompt: "Buat PRD untuk modul {module-name}"
 
-# Architecture review (wajib sebelum fr-writer, minimal sekali per modul)
+# Architecture — Mode 1: solution-design (wajib sebelum fr-writer)
 # Invoke: architect
-# Prompt: "Review architecture untuk modul {module-name} dari docs/prd/{module-name}/"
+# Prompt: "Solution design untuk modul {module-name} dari docs/prd/{module-name}/ — Mode 1, output design.md"
+
+# Architecture — Mode 2: technical-spec (setelah fr-writer selesai)
+# Invoke: architect
+# Prompt: "Technical spec untuk modul {module-name} dari docs/fr/{module-name}/ — Mode 2, output api-spec.md"
 
 # FR dari PRD yang sudah ada
 # Invoke: fr-writer
@@ -472,6 +542,10 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 # HTML slide deck (management-level)
 # Invoke: presenter
 # Prompt: "Generate deck for {topic}, target audience: management"
+
+# Audit & restrukturisasi docs
+# Invoke: doc-tidier
+# Prompt: "Audit docs/ — classify, find gaps/orphans, propose restructure"
 ```
 
 ---
@@ -483,7 +557,7 @@ make test-{module}-e2e   # re-run semua E2E modul + regenerate report
 ### Mengapa
 
 - Setiap re-discovery boros context window (cari file, baca log, coba SQL, restart, verifikasi).
-- Setiap re-discovery flaky — AI bisa skip step (misal lupa `TRUNCATE ytd_ledger` karena tidak FK ke periods, atau lupa rebuild image karena `docker restart` cuma re-run entrypoint).
+- Setiap re-discovery flaky — AI bisa skip step (misal lupa TRUNCATE tabel turunan yang tidak punya FK, atau lupa rebuild image karena `docker restart` cuma re-run entrypoint).
 - Setiap re-discovery menambah noise di chat dan menggeser fokus user dari kerjaan substantif.
 
 ### Trigger — kapan harus bikin script + runbook
@@ -492,8 +566,8 @@ Bikin helper begitu salah satu terjadi:
 
 1. **AI sudah pernah debug urutan ini** — kalau next session bakal debug lagi dari nol, freeze sekarang.
 2. **User bilang "kok ulang lagi sih"** atau sejenis — sinyal eksplisit bahwa flow ini perlu encapsulation.
-3. **Ada > 3 step shell/docker/SQL berurutan dengan dependency** (misal: TRUNCATE → DELETE flyway row → restart container → wait health → verify seed).
-4. **Step urutan punya racy timing** (misal Spring Boot accept TCP sebelum dispatcher servlet ready) — script harus encode probe, jangan andalkan AI ingat tambah `sleep`.
+3. **Ada > 3 step shell/docker/SQL berurutan dengan dependency** (misal: TRUNCATE → DELETE migration history row → restart container → wait health → verify seed).
+4. **Step urutan punya racy timing** (misal container accept TCP sebelum app layer ready) — script harus encode probe, jangan andalkan AI ingat tambah `sleep`.
 
 ### Pola standar (3 file)
 

@@ -22,25 +22,35 @@ Read `CLAUDE.md` for project context, tech stack, and doc structure. Check `docs
 
 ## Input
 
-Input berbeda tergantung mode:
+Tiga mode berbeda sepanjang pipeline — pre-FR, post-FR, post-implementasi. Klarifikasi mode ke user bila ambigu sebelum mulai.
 
-### Initial run (sebelum fr-writer)
+### Mode 1 — solution-design (pre-FR)
 
-FR belum ada — jangan cari atau tunggu FR.
+FR belum ada — jangan cari atau tunggu FR. Jangan mengarang API shape; shape menyusul di Mode 2 setelah FR.
 
 1. **PRD** — baca `docs/prd/{module}/` — workflows, state machine, business rules, actors, NFR
 2. **Discovery docs** — baca `docs/discovery/` bila ada, untuk context dan constraints
 3. **Existing codebase** — baca struktur kode, patterns, dependencies yang sudah ada
 
-PRD sudah cukup untuk menghasilkan API spec: workflow steps → endpoints, state machine → state transition codes, business rules → validation + error codes, actors → auth + permissions, NFR → performance, encryption, pagination.
+Scope Mode 1: keputusan strategis saja — bounded context, service responsibilities, entity model level (bukan DDL), integration patterns, resilience decisions, NFR constraints, ADR strategis. Output: `docs/architecture/{module}/design.md`.
 
-### Conformity checkpoint (setelah implementasi berjalan)
+### Mode 2 — technical-spec (post-FR)
 
-1. **Architecture doc** — baca `docs/architecture/{module}/design.md` sebagai baseline
-2. **FR** — baca `docs/fr/{module}/` — verifikasi response codes di FR konsisten dengan implementasi
-3. **Codebase** — baca controller + service untuk mendeteksi drift dari design.md
+FR sudah selesai — derivasi technical spec dari ticket stubs + AC.
 
-Conformity checkpoint tidak menghasilkan doc baru — melaporkan: apa yang sesuai, apa yang menyimpang, ADR baru apa yang perlu dibuat.
+1. **FR** — baca `docs/fr/{module}/` — ticket stubs, AC, response codes, UI Selectors
+2. **Solution design** — baca `docs/architecture/{module}/design.md` sebagai baseline constraint
+
+Scope Mode 2: API contracts (endpoint, method, request/response), state transition codes konsisten dengan AC, idempotency map, field-level constraints, ADR taktis. Output: `docs/architecture/{module}/api-spec.md`.
+
+### Mode 3 — conformity (post-implementasi)
+
+1. **Solution design** — `docs/architecture/{module}/design.md`
+2. **Technical spec** — `docs/architecture/{module}/api-spec.md`
+3. **FR** — `docs/fr/{module}/` untuk verifikasi response codes konsisten dengan implementasi
+4. **Codebase** — controller + service untuk mendeteksi drift dari kedua baseline
+
+Scope Mode 3: tidak menghasilkan doc baru — melaporkan apa yang sesuai, apa yang menyimpang, ADR baru bila ada keputusan implementasi yang belum terdokumentasi.
 
 If input is unclear, use AskUserQuestion to clarify scope and mode before proceeding.
 
@@ -125,7 +135,8 @@ All output is written to local `docs/` — no external wiki or CMS.
 **File structure:**
 ```
 docs/architecture/index.md                    ← system overview & module map
-docs/architecture/{module}/design.md          ← per-module architecture doc
+docs/architecture/{module}/design.md          ← Mode 1 output: strategic solution design
+docs/architecture/{module}/api-spec.md        ← Mode 2 output: API contracts, error codes, idempotency
 docs/architecture/adr/index.md                ← ADR index
 docs/architecture/adr/{NNN}-{title}.md        ← individual ADR
 ```
@@ -136,14 +147,20 @@ docs/architecture/adr/{NNN}-{title}.md        ← individual ADR
 - Cross-cutting concerns: auth, observability, deployment
 - Links to module pages and ADR index
 
-**Module architecture page** (`docs/architecture/{module}/design.md`):
+**Solution design page** (`docs/architecture/{module}/design.md` — Mode 1):
 - Module overview & responsibility
 - Component diagram (text-based)
-- API contracts (endpoints, request/response)
-- Data model (entities, relationships, storage)
+- Bounded context & service boundaries
+- Data model (entities, relationships — bukan field-level DDL)
 - Integration points (sync/async, dependencies)
 - Resilience map
 - NFR check table
+
+**Technical spec page** (`docs/architecture/{module}/api-spec.md` — Mode 2):
+- API contracts (endpoint, method, request/response shape)
+- Error codes & state transition codes (konsisten dengan AC di FR)
+- Idempotency map
+- Field-level constraints (tipe data, presisi)
 
 **ADR** (`docs/architecture/adr/{NNN}-{title}.md`):
 - **Status**: Proposed / Accepted / Deprecated / Superseded

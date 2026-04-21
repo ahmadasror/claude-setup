@@ -1,13 +1,12 @@
 # Claude Code Setup
 
-Personal Claude Code configuration: custom agents, global rules, hooks, and settings.
+Personal Claude Code configuration: custom agents, global rules, and settings.
 
 ## Structure
 
 ```
 agents/       # Custom subagent definitions (11 agents — 7 pipeline + 4 supporting)
 rules/        # Global rules applied to all projects
-hooks/        # Shell scripts triggered by Claude Code hooks
 settings.json # Global Claude Code settings
 ```
 
@@ -18,7 +17,6 @@ settings.json # Global Claude Code settings
 ### Prerequisites
 
 - Claude Code CLI installed
-- `jq` (required by `hooks/update-confluence.sh`) — `brew install jq` / `apt install jq`
 - `~/.claude/` directory exists (created on first Claude Code run)
 
 ### Copy to Claude Code profile
@@ -27,22 +25,15 @@ settings.json # Global Claude Code settings
 git clone git@github.com:ahmadasror/claude-setup.git
 cd claude-setup
 
-mkdir -p ~/.claude/agents ~/.claude/rules ~/.claude/hooks
+mkdir -p ~/.claude/agents ~/.claude/rules
 
 cp agents/*.md ~/.claude/agents/
 cp rules/*.md  ~/.claude/rules/
-cp hooks/*.sh  ~/.claude/hooks/
-chmod +x ~/.claude/hooks/*.sh
 
 # Review settings.json before copying — in particular
 # "skipDangerousModePermissionPrompt" defaults to false here.
 cp settings.json ~/.claude/settings.json
 ```
-
-### Hook configuration (optional)
-
-- **`sync-planka-to-claude-md.sh`** — fires after Planka card updates. Requires project to have `CLAUDE.md` at its root; otherwise hook is a no-op.
-- **`update-confluence.sh`** — fires after `ExitPlanMode`. Requires project-level `.claude/confluence.json` with fields `{url, space, section}`; absent → no-op.
 
 ### Sync direction
 
@@ -61,11 +52,11 @@ git diff   # review before commit
 | Agent | Purpose | Model |
 |---|---|---|
 | requirement-gatherer | Product strategy & workflow discovery → PRD | opus |
-| architect | Enterprise architecture review → design.md + ADR | opus |
+| architect | Solution architect — 3 modes: solution-design (design.md) · technical-spec (api-spec.md) · conformity | opus |
 | fr-writer | Functional requirements from PRD + Architecture | opus |
 | tester-explorer | Test scenarios (3-phase progressive) | opus |
-| test-builder | Generate + run Playwright specs, write test report | opus |
-| night-builder | Autonomous unattended builder (code + unit tests) | opus |
+| test-builder | Generate + run Playwright specs, write test report | sonnet |
+| night-builder | Autonomous unattended builder (code + unit tests) | sonnet |
 | pimpro | Pipeline status aggregator / dashboard | sonnet |
 
 ### Supporting (4)
