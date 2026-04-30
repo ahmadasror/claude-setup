@@ -23,6 +23,7 @@ Semua nama, angka, kredensial, dan ID di sini **fictional** — dipakai hanya un
 | 5 | test-builder | `05-test-builder/` | Playwright specs + test report |
 | 6 | night-builder | `06-night-builder/` | Night build report |
 | 7 | pimpro | `07-pimpro/` | Pipeline status dashboard |
+| 8 | drift-triager | `08-drift-triager/` | Drift triage report (post-drift detector run) |
 
 ## Baca urutannya
 

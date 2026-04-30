@@ -179,12 +179,12 @@ docs/test-scenarios/{module}/
 | Layer | Format | Example |
 |---|---|---|
 | Business Scenario | `BS-{flow-num}-{NN}` (zero-padded) | `BS-01-09` |
-| API Test Case | `TC-{MODULE}-{FR}-{CAT}-{N}` | `TC-PAY-011-HP-001` |
+| API Test Case | `TC-{MODULE}-{FR}-{CAT}-{N}` | `TC-MOD-011-HP-001` |
 | FE Test Case | `FE-{flow-num}-{M}` | `FE-01-34` |
 
 ### Cross-layer traceability
 
-- Each BS lists: `**Covers API TCs**: TC-PAY-..., TC-PAY-...`
+- Each BS lists: `**Covers API TCs**: TC-{MODULE}-..., TC-{MODULE}-...`
 - Each API TC lists: `**Business scenario**: [BS-{N}-{M}](../flow-NN.md#bs-nn-mm)`
 - Each FE TC lists: `**Business scenario**: [BS-{N}-{M}](...)`
 - Backend-only scenarios (AUDIT, CONC, IDEM, system-to-system) in FE layer get: `**Not applicable — no UI for this scenario**`

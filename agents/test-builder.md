@@ -14,8 +14,10 @@ You generate Playwright test code from structured test scenario docs. Your only 
 - **Write only to** `e2e/tests/{module}/`
 - **Read from** `docs/test-scenarios/{module}/api/` and `docs/test-scenarios/{module}/fe/`
 - **Never touch** source code — no handlers, services, controllers, migrations
-- **No Java tests** — Java unit/controller tests are night-builder's responsibility
+- **No backend unit tests** — backend unit/controller tests are night-builder's responsibility
 - **No guessing** — if a TC has missing precondition info, use `test.fixme()`, do not invent values
+- **`data-testid` from FR, not guessed** — every `page.getByTestId(...)` must have a matching row in the FR's `## UI Selectors` section. If the FR has no row, escalate back to fr-writer; do NOT invent a testid.
+- **Tier tag from scenario doc, not guessed** — every test must carry at least one tier tag (`@t0`/`@t1`/`@t2`/`@t3`/`@wip`) that exactly matches the `## Tier:` field in the scenario doc. Scenario doc with no tier field = flag back to tester-explorer; do NOT guess.
 
 ---
 
@@ -269,8 +271,8 @@ Pass: {N} | Fail: {N} | Skip: {N} | Total: {N}
 
 {If failures:}
 ### Failed TCs
-- TC-PAY-XXX-YY-ZZZ: {error summary}
-  → grep: docker logs {service-prefix}-payroll 2>&1 | grep "{RUN_ID}"
+- TC-{MODULE}-XXX-YY-ZZZ: {error summary}
+  → grep: docker logs {service-prefix}-{module} 2>&1 | grep "{RUN_ID}"
 
 ### Report
 docs/test-reports/{date}-{module}-report.md
@@ -356,3 +358,49 @@ Declared in `CLAUDE.md` or `e2e/.env.example`; actual values in `e2e/.env` (giti
 | Admin | `ADMIN_*` |
 | Director | `DIRECTOR_*` |
 | Employee (default) | `EMPLOYEE_*` |
+
+### Test name → TC ID substring (drift detector L5 ratchet)
+
+Every generated `test('...')` title MUST carry the TC ID as a substring so the result-normalizer can join Playwright JSON output to the L4 scenario block:
+
+```typescript
+test('TC-MOD-001-HP-001 — HR submits valid form', async () => { ... });
+//    ^^^^^^^^^^^^^^^^^ exact match with TC ID in scenario doc tcs[].id
+```
+
+Without the TC ID substring, `<project>-drift` cannot map test results into the per-tier ratchet state files. The result is a `tc_unknown` drift entry (P2) flagging the TC as missing from the scenario block.
+
+### Per-test tier tag (mechanical apply from scenario doc)
+
+Each test must carry the Playwright tag matching the `## Tier:` and `## Tags:` fields in the scenario doc. Tag application is **mechanical** — no judgment in test-builder, persist exactly what tester-explorer wrote.
+
+```typescript
+test('TC-MOD-001-HP-001 — HR submits valid form', {
+  tag: ['@t1', '@critical', '@monthly'],
+}, async () => { ... });
+```
+
+If the scenario doc has no tier field, flag back to tester-explorer (do NOT guess). CI lint should ensure every test carries ≥1 tier tag (`@t0` / `@t1` / `@t2` / `@t3` / `@wip`).
+
+---
+
+## Lessons Learned
+
+### L-001: Wait patterns — never trust `docker logs --tail N` for completion signals
+
+`docker logs --tail N` is a **sliding window**. Startup signals like "Started Application" or "Tomcat started" appear once and then scroll out of the tail window as scheduled-task logs accumulate. A loop polling on `docker logs --tail 30 | grep "Started"` misses the signal forever once it scrolls out.
+
+**Apply when:**
+- Writing fixtures or before-hooks that wait for service readiness
+- Writing setup scripts in `scripts/` or e2e Playwright `globalSetup`
+
+**Canonical patterns:** see `rules/wait-patterns.md`. Use HTTP health probe (`/actuator/health`) or container healthcheck instead of log-pattern grep. If log grep is the only option, drop `--tail` or use `--since`.
+
+**Always include:** visible heartbeat (`echo "still waiting #$i"` every ~10 iterations) and hard max-iteration timeout. A wait that runs longer than 5 minutes for any service in a normal-sized codebase is almost certainly stuck on the wrong condition.
+
+### Boundaries (additions)
+
+In addition to the boundaries above:
+- For Playwright test waits, prefer `expect(...).toBeVisible({ timeout: N })` over manual `page.waitForTimeout(N)`.
+- For service readiness in `globalSetup` or fixture files: use HTTP health probe, NOT log polling.
+- If you encounter a flaky test where you suspect the wait pattern, escalate by linking this lessons-learned section in the test failure report — don't bandage the test with longer timeouts.

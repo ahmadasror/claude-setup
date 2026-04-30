@@ -174,13 +174,131 @@ On confirmation, write output to local `docs/fr/{module}/`:
 | File | Isi |
 |---|---|
 | `docs/fr/{module}/index.md` | Epic breakdown table, flow map, ticket index, open questions summary |
-| `docs/fr/{module}/fr-{workflow}.md` | Ticket stubs + AC per epic/workflow |
+| `docs/fr/{module}/fr-{workflow}.md` | Ticket stubs + AC per epic/workflow + `## UI Selectors` section (when FR has UI surface) |
 | `docs/fr/{module}/completion-status.md` | ASSUMED decisions, open questions, build order |
 
 Each FR file must include:
 - Link back to source PRD files
 - Link back to source architecture files
 - Generation date at bottom
+
+---
+
+## Step 7 — Emit Contract Block (drift-detector L2)
+
+After Step 6, generate a machine-readable **Contract block** for each FR file that declares ≥1 endpoint, DB write, permission, or workflow definition reference. The block is the **last numbered section** of the FR file. Schema: `docs/fr/_contract-schema.json`.
+
+### When to emit
+
+Required for FR files in any **in-scope** module. Each project lists its in-scope set in `<project>-drift`'s default config (typically the modules whose FR layer has matured into a stable contract).
+
+Skip for:
+- FR files in pre-FR / actively-evolving modules (Phase 2 — no enforcement until promoted)
+- FR files that have **no** API endpoints, DB writes, permissions, OR workflow refs (rare — usually only meta/index files)
+
+### Block structure
+
+```markdown
+## NN. Contract (machine-readable)
+
+> Drift-detector source. Schema: `docs/fr/_contract-schema.json`. Do not duplicate human content above.
+
+```yaml
+fr_file: docs/fr/<module>/<filename>.md
+covers: [FR-<MODULE>-001, FR-<MODULE>-002]
+
+prd_refs:                                # v2 Phase 4 — optional, additive
+  - prd_file: docs/prd/<module>/index.md
+    anchor: <slug-from-prd-anchors>      # must exist in PRD's anchors[]; use 'full-prd' if no fine-grained anchors
+
+permissions:
+  declared: [<perm.string>, ...]
+  consumed: [<perm.string>, ...]
+
+endpoints:
+  - id: <stable-id>          # optional but encouraged
+    method: <HTTP verb>
+    path: /api/v1/<...>
+    auth:
+      mode: jwt | internal_token | hmac | anonymous
+      permission: <perm.string>      # required for jwt mode
+    request:
+      body: { <field>: { type, required, ... } }
+      query: { <field>: { type } }
+    responses:
+      <status>: { dto?, fields?, error_code?, error_codes?, condition? }
+    audit:                   # required if action is CUD
+      action: create | update | delete | approval_transition
+      resource_type: <entity>
+      meta_tags: [...]
+    idempotency:
+      natural_key: [...]
+    optimistic_lock: { field: version }
+    business_date: required  # set when handler reads/writes time-sensitive data
+
+db:
+  reads: [<table>, ...]
+  writes:
+    - table: <table>
+      columns_declared: [...]
+      uniques: [{ cols: [...], predicate?: <where>, name?: <constraint-name> }]
+
+enums:
+  <table>.<col>: [VALUE_A, VALUE_B, ...]
+
+workflow_definitions:                # only for FRs that trigger a workflow engine
+  - file: <repo-relative-path>/<workflow>.yaml
+    asserted:
+      step_count: N
+      steps:
+        - { order: 1, role: <role>, deadline: <duration> }
+        - { order: 2, role: <role>, deadline: <duration>, conditional?: <expr> }
+
+cross_links:
+  consumers: [{ fr: <path>, ac: <id> }]
+  sisters: [<path>, ...]
+```
+```
+
+### Sourcing rules
+
+Pull the block content from material you already have:
+- **endpoints** → extract from `## API Response Codes` table (method, path, error_codes per status)
+- **auth.permission** → from `## Actors & RBAC` table or AC text
+- **request.body** → from FR §Body lines or AC field constraints (type/required/max)
+- **db.writes/reads** → from `## Data Model Touch Points` section
+- **enums** → from FR text where status values are enumerated
+- **audit** → from any AC line referencing audit emit / rule reference
+- **workflow_definitions** → only if the FR references a workflow engine; cross-check against the actual YAML body in the repo (read each file's `name:`, `steps:`)
+- **prd_refs** → optional, additive. When the PRD for this module already has a populated `## NN. PRD Contract Block (machine-readable)` with `anchors[]`, cite the matching anchor id here. Anchor id is a slug (lowercase kebab-case); use the reserved slug `full-prd` when the PRD has no fine-grained anchors. Skip the field entirely when the PRD has no contract block yet — do not invent prd_files. Drift detector emits `fr_orphan_prd_ref` when an entry cites a missing PRD or unknown anchor.
+- **cross_links** → from front-matter "Sister FRs" / "Consumer" / "Architecture sources" lines
+
+DO NOT invent fields that are not already documented in the human sections. The block is a re-encoding of what's already in the FR; not a place to add new claims.
+
+### Schema validation
+
+After writing the block, mentally validate against `docs/fr/_contract-schema.json`. CI will run:
+```bash
+make drift-validate    # or: <project>-drift validate-fr docs/fr/<module>/<file>.md
+```
+
+If validation fails, fix the block syntax before publishing.
+
+### Cross-references to add to the FR file footer
+
+After the Contract block, add or update the FR's "References" / footer with these links if relevant:
+- `docs/fr/_contract-schema.json` — Contract block schema
+- `rules/fr-contract-block.md` — rule
+- `docs/architecture/drift-detector/design.md` — drift detector design
+- `docs/prd/_contract-schema.json` — PRD schema (when authoring `prd_refs[]`)
+
+### Boundaries (additions)
+
+- The Contract block is generated AFTER the human-readable sections, never as a substitute.
+- Do not edit existing Contract blocks of other FRs unless the user asks (each FR owns its own block).
+- If you cannot extract a complete block (e.g. AC missing field shape), emit the block with the fields you have and add an explicit `# TODO:` comment in the YAML for the missing field — do NOT guess.
+- For FRs that reference a workflow engine (LightWorkflow, Temporal, etc.): ALWAYS read the actual YAML/code body to populate `asserted.step_count` and `asserted.steps` — do not paraphrase from FR text alone.
+- `prd_refs[]` is **additive** — never remove an existing entry just because the PRD changed. If the PRD anchor was renamed, update the `anchor` slug to the new value; if the PRD was deleted, surface as `manual_review` rather than silently dropping the back-link.
 
 ---
 
