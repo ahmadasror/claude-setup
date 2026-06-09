@@ -2,6 +2,15 @@
 
 > Praktisi tone, Indonesian-mix narrative + English structured fields. The pipeline + drift detector + 5-link spine described here was battle-tested on a non-trivial product codebase (~75+ features across 8 modules, mixed Go + Java + Nuxt). This doc distills the adoption path so a new project can pick it up in phases without bringing the whole estate from day 1.
 
+> ⚠️ **Read `AGENT_WORKFLOW.md` §SDD Lean Mode first.** The same battle-tested codebase
+> later **retired most of this heavy spine** — it proved too heavy for a solo-operator +
+> AI loop (CI stopped firing, drift became a firehose, the marker ledger sat empty).
+> The operative practice is now 3 artifacts (FR + contract block, ADR, green tests) with
+> drift **advisory** on critical paths. Treat the phases below as an **à la carte menu**:
+> start from Lean Mode (Phase 1 + the FR contract block) and add a later layer **only
+> when it pays rent**. Adopting all 5 spine links on day 1 is exactly the over-weight
+> mistake this warning exists to prevent.
+
 ---
 
 ## TL;DR

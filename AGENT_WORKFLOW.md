@@ -4,6 +4,75 @@ Panduan agent pipeline: urutan eksekusi, input/output tiap agent, dan siapa yang
 
 ---
 
+## ⚡ SDD Lean Mode — the operative practice (read this first)
+
+> **This overrides the heavy spine below for day-to-day work.**
+>
+> The full multi-layer traceability spine + 8-agent pipeline (documented further
+> down) proved **too heavy for a solo-operator + AI loop** and went unused: CI stopped
+> firing, drift output became a multi-thousand-entry firehose, the per-method marker
+> ledger sat empty, and features shipped code-first with the spec backfilled minutes
+> later. So the *mandatory* process is now **three artifacts that pay rent**; the rest
+> is opt-in, kept below as reference.
+
+### The 3 artifacts (mandatory for a non-trivial feature)
+
+1. **FR with AC + machine-readable contract block** — `docs/fr/<module>/…`, the
+   `## Contract` YAML block (still the source of truth the drift detector reads).
+   See `rules/fr-contract-block.md`.
+2. **ADR** for any non-obvious decision — `docs/architecture/adr/…`. Lightweight,
+   high-payoff — the part of the spine that always worked.
+3. **Test results** — the relevant test/smoke/E2E tier green.
+
+### Authoring direction — code-first is fine
+
+The honest loop is: write the code, then land the **FR + contract block in the same
+commit (or the immediate follow-up)**. Drift verifies *that pairing* on critical
+paths; it does not demand spec-before-code. (This reverses the "spec authored before
+code" stance in the reference section below — Lean Mode wins.)
+
+### Two commands replace the pipeline
+
+- `/spec <module>` (or the `fr-writer` agent) — produce/refresh the FR + contract
+  block + ADR before a non-trivial feature.
+- `drift` (advisory) — a scoped FR↔code check on critical paths, **exit 0** (not a
+  blocking gate). Full firehose + strict schema validation are separate opt-in modes.
+
+### Retired
+
+- Per-method `FR-<MODULE>-<NNN>` code-comment markers + their TTL ledger (highest
+  friction, lowest payoff — the ledger sat empty).
+- Drift as a *blocking* CI gate (now advisory).
+- `pimpro` as a mandatory supervisor (retired — its `status.md` rollup is on-demand at
+  most).
+- The mandatory 8-agent chain. `requirement-gatherer / architect / api-writer /
+  tester-explorer / drift-triager` are **on-demand**, invoked when a specific feature
+  warrants that stage — never as a gate.
+
+### Critical paths stay strict-ish
+
+Money / safety / compliance changes still want the FR contract block current + the
+advisory drift clean on the actionable surface + the relevant E2E tier green before
+"done".
+
+### Cross-repo coordination
+
+For work that crosses a repo boundary (a consumer needs a provider to confirm/extend a
+wire contract), use the markdown-inbox handoff protocol — see `CROSS_REPO_HANDOFF.md`
+and `rules/cross-repo-handoff.md`. It is the live multi-repo workflow.
+
+> Everything below this line is the **reference** model (the full traceability spine).
+> It stays valid as documentation and for the layer-numbering other docs cite — but it
+> is **no longer the mandatory day-to-day process**.
+
+---
+
+> ⚠️ **REFERENCE ONLY — superseded by §SDD Lean Mode above.** The sections from here
+> down describe the heavy multi-layer spine / 8-agent pipeline, kept for documentation
+> and for adopters who want the full traceability machinery. If a sentence below says
+> "spec authored first", "drift gate green required", per-method "markers", names
+> `pimpro` as a live supervisor, or names a mandatory agent chain — **Lean Mode wins**.
+
 ## 5-Link Traceability Spine (v2)
 
 > **Optional but strongly recommended for any project past initial PRD/FR drafting.** The 5-link spine ties PRD → FR → code → test scenario → test result so a single drift detector can flag any inconsistency between the layers. It is implemented today via 5 contract surfaces (4 markdown YAML blocks + 1 JSON state file) and a Go-based drift detector binary.

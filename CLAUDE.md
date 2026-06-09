@@ -4,6 +4,13 @@ This repo mirrors the agent definitions and rules from `~/.claude/`.
 
 > **Source of truth for pipeline order, inputs/outputs, and cross-agent contracts**: `AGENT_WORKFLOW.md`. Anything here that conflicts with that doc is stale — update or delete.
 
+> **Operative practice = SDD Lean Mode** (`AGENT_WORKFLOW.md` §SDD Lean Mode). The
+> mandatory surface is 3 artifacts (FR + contract block, ADR, green tests); the heavy
+> spine + 8-agent pipeline documented below is **reference / opt-in**. `pimpro` is
+> retired. Cross-repo work uses `CROSS_REPO_HANDOFF.md`. The "Agent Design Decisions"
+> notes below predate Lean Mode and describe agents in their full-pipeline role — read
+> them as design rationale, not as a mandatory run order.
+
 ## Sync Convention
 
 One-way: `~/.claude/` is the live copy, this repo is the mirror.
